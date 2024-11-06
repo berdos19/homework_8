@@ -31,28 +31,52 @@ public class GroupService : IGroupService
             .ToArrayAsync(cancellationToken);
     }
 
-    public Task<Group?> GetGroupById(Guid id, CancellationToken cancellationToken = default)
+    public async Task<Group?> GetGroupById(Guid id, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        return await _context.Groups
+            .Include(g => g.Students)
+            .FirstOrDefaultAsync(g => g.Id == id, cancellationToken);
     }
 
     #endregion
 
     #region DML
 
-    public Task<Group> AddGroup(Group group, CancellationToken cancellationToken = default)
+    public async Task<Group> AddGroup(Group group, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        await _context.Groups.AddAsync(group, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
+        return group;
     }
 
-    public Task DeleteGroup(Guid id, CancellationToken cancellationToken = default)
+    public async Task DeleteGroup(Guid id, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var group = await _context.Groups.FindAsync(new object[] { id }, cancellationToken);
+        if (group == null)
+        {
+            throw new KeyNotFoundException($"Group with id {id} not found.");
+        }
+
+        _context.Groups.Remove(group);
+        await _context.SaveChangesAsync(cancellationToken);
     }
 
-    public Task AddStudentToGroup(Guid groupId, Guid studentId, CancellationToken cancellationToken = default)
+    public async Task AddStudentToGroup(Guid groupId, Guid studentId, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var group = await _context.Groups.Include(g => g.Students).FirstOrDefaultAsync(g => g.Id == groupId, cancellationToken);
+        if (group == null)
+        {
+            throw new KeyNotFoundException($"Group with id {groupId} not found.");
+        }
+
+        var student = await _context.Students.FindAsync(new object[] { studentId }, cancellationToken);
+        if (student == null)
+        {
+            throw new KeyNotFoundException($"Student with id {studentId} not found.");
+        }
+
+        group.Students.Add(student);
+        await _context.SaveChangesAsync(cancellationToken);
     }
 
     #endregion
